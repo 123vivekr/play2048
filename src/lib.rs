@@ -13,37 +13,35 @@ pub enum Status {
 }
 
 #[derive(Debug)]
-pub enum InitializationError {
-    InvalidTarget
-}
+pub struct InvalidTargetError {}
 
-impl Error for InitializationError {}
+impl Error for InvalidTargetError {}
 
-impl fmt::Display for InitializationError {
+impl fmt::Display for InvalidTargetError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let msg:&str = match self {
-            InitializationError::InvalidTarget => "target should be a positive power of 2"
-        };
-
-        write!(f, "{}", msg)
+        write!(f, "target should be a positive power of 2")
     }
 }
 
 #[derive(Debug)]
-pub struct NoValidMovesLeft {}
+pub struct NoValidMovesLeftError {}
 
-impl Error for NoValidMovesLeft {}
+impl Error for NoValidMovesLeftError {}
 
-impl fmt::Display for NoValidMovesLeft {
+impl fmt::Display for NoValidMovesLeftError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "No valid moves left")
     }
 }
-  
 
-pub fn new(dimension: usize, target: usize) -> Result<Game, InitializationError> {
+/// Start a new game
+/// 
+/// `dimension`: Dimensions of the board. Example `4` for a 4x4 board.
+/// 
+/// `target`: Target to achieve to win the game. (Must be a power of 2). Example `2048`. (Defaults to 2048)
+pub fn new(dimension: usize, target: usize) -> Result<Game, InvalidTargetError> {
     if (target & (target - 1)) != 0 || target < 5 {
-        return Err(InitializationError::InvalidTarget);
+        return Err(InvalidTargetError {});
     }
 
     Ok(Game {
@@ -52,7 +50,7 @@ pub fn new(dimension: usize, target: usize) -> Result<Game, InitializationError>
     })
 }
 
-
+// creates a board with given dimensions and initializes with 2 random numbers
 fn create_board(dimension: usize) -> Vec<Vec<usize>> {
     let mut board = Vec::new();
     for _ in 0..dimension {
@@ -69,6 +67,7 @@ fn create_board(dimension: usize) -> Vec<Vec<usize>> {
     board
 }
 
+// add a 2 or 4 at a random location
 fn add_2_or_4_at_random_location(board: &mut Vec<Vec<usize>>) {
     let dimension = board.len();
     let rand_2_or_4 = if rand::thread_rng().gen_range(0..2) == 0 {
@@ -89,6 +88,7 @@ fn add_2_or_4_at_random_location(board: &mut Vec<Vec<usize>>) {
 }
 
 impl Game {
+    /// Print the board
     pub fn print_board(&self) {
         for i in &self.board {
             for j in i {
@@ -98,6 +98,7 @@ impl Game {
         }
     }
 
+    /// Get status of gameplay
     pub fn get_status(&self) -> Status {
         if contains_target(&self.board, &self.target) {
             return Status::Won;
@@ -110,6 +111,7 @@ impl Game {
         Status::Running
     }
 
+    /// Combine to the right
     pub fn combine_right(&mut self) {
         for row in self.board.iter_mut() {
             row.reverse();
@@ -118,12 +120,14 @@ impl Game {
         }
     }
 
+    /// Combine to the left
     pub fn combine_left(&mut self) {
         for row in self.board.iter_mut() {
             combine_array(row);
         }
     }
 
+    /// Combine to the top
     pub fn combine_top(&mut self) {
         transpose_board(&mut self.board);
         for row in self.board.iter_mut() {
@@ -132,6 +136,7 @@ impl Game {
         transpose_board(&mut self.board);
     }
 
+    /// Combine to the bottom
     pub fn combine_bottom(&mut self) {
         transpose_board(&mut self.board);
         for row in self.board.iter_mut() {
@@ -142,11 +147,14 @@ impl Game {
         transpose_board(&mut self.board);
     }
 
-    pub fn refresh(&mut self) -> Result<(), NoValidMovesLeft> {
+    /// This will add a 2 or a 4 at a random position
+    /// 
+    /// `refresh()` will return with a `NoValidMovesLeftError` error if there aren't any valid moves possible
+    pub fn refresh(&mut self) -> Result<(), NoValidMovesLeftError> {
         add_2_or_4_at_random_location(&mut self.board);
 
         if no_valid_moves_left(&self.board) {
-            return Err(NoValidMovesLeft {});
+            return Err(NoValidMovesLeftError {});
         }
 
         Ok(())
@@ -154,6 +162,7 @@ impl Game {
 
 }
 
+// check if board contains the target number
 fn contains_target(board: &Vec<Vec<usize>>, target: &usize) -> bool {
     for row in board {
         if row.contains(target) {
@@ -164,13 +173,16 @@ fn contains_target(board: &Vec<Vec<usize>>, target: &usize) -> bool {
     false
 }
 
+// check if a valid move is possible
 fn no_valid_moves_left(board: &Vec<Vec<usize>>) -> bool {
+    // if board has a `0`, then valid moves available
     for row in board {
         if row.contains(&0) {
             return false;
         }
     }
 
+    // if no tile can be combined, then no valid moves
     let dimension = board.len();
     for i in 0..dimension - 1 {
         for j in 0..dimension - 1 {
@@ -217,6 +229,7 @@ fn combine_array(array: &mut Vec<usize>) {
     } 
 }
 
+// convert rows into columns
 fn transpose_board(board: &mut Vec<Vec<usize>>) {
     let board_clone = board.clone();
     let dimension = board.len();

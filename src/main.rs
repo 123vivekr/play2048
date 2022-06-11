@@ -5,6 +5,7 @@ use play2048::*;
 const DEFAULT_TARGET: usize = 2048;
 
 fn main() {
+    // get command line arguments
     let args: Vec<String> = env::args().collect();
     if args.len() != 3 && args.len() != 2 {
         println!("Usage: play2048 <board_dimension> [target]");
