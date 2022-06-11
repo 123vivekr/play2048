@@ -92,7 +92,7 @@ impl Game {
     pub fn print_board(&self) {
         for i in &self.board {
             for j in i {
-                print!("{} ", j);
+                print!("    {}", j);
             }
             println!();
         }
